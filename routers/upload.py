@@ -9,7 +9,7 @@ import chardet
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.post("/")
+@router.post("/upload")  # Critical: No trailing slash
 async def upload_file(file: UploadFile = File(...)):
     try:
         # Read file content
@@ -17,12 +17,11 @@ async def upload_file(file: UploadFile = File(...)):
         
         # Detect encoding for text files
         if file.filename.endswith(('.csv', '.txt')):
-            encoding = chardet.detect(contents)['encoding'] or 'utf-8'
+            result = chardet.detect(contents)
+            encoding = result['encoding'] or 'utf-8'
             try:
-                # Try decoding with detected encoding
                 file_content = contents.decode(encoding)
             except UnicodeDecodeError:
-                # Fallback to replace errors
                 file_content = contents.decode(encoding, errors='replace')
             file_like = BytesIO(file_content.encode('utf-8'))
         else:
@@ -58,4 +57,3 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         logger.exception(f"Upload failed: {str(e)}")
         raise HTTPException(500, f"File processing error: {str(e)}")
-
