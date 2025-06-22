@@ -1,73 +1,52 @@
-from fastapi import APIRouter, UploadFile, File
-from state import data_store
+from fastapi import APIRouter, UploadFile, File, HTTPException
 import pandas as pd
-import uuid
-import io
+from io import BytesIO
 import logging
+from state import data_store
+import uuid
 import chardet
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-def detect_encoding(contents):
-    result = chardet.detect(contents)
-    return result['encoding'] if result['confidence'] > 0.7 else 'utf-8'
 
 @router.post("/")
 async def upload_file(file: UploadFile = File(...)):
     try:
         # Read file content
         contents = await file.read()
-        logger.info(f"Processing file: {file.filename}, size: {len(contents)} bytes")
         
-        # Process based on file type
-        if file.filename.endswith('.csv'):
-            # Try multiple encodings for CSV
-            for encoding in ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']:
-                try:
-                    df = pd.read_csv(io.BytesIO(contents), encoding=encoding)
-                    logger.info(f"Successfully read CSV with {encoding} encoding")
-                    break
-                except Exception as e:
-                    logger.warning(f"Failed to read with {encoding}: {str(e)}")
-            else:
-                # Final fallback with error ignore
-                df = pd.read_csv(io.BytesIO(contents), encoding='utf-8', errors='ignore')
-                logger.warning("Using UTF-8 with errors='ignore' as fallback")
-                
-        elif file.filename.endswith(('.xlsx', '.xls')):
-            # Handle Excel files
+        # Detect encoding for text files
+        if file.filename.endswith(('.csv', '.txt')):
+            encoding = chardet.detect(contents)['encoding'] or 'utf-8'
             try:
-                df = pd.read_excel(io.BytesIO(contents))
-                logger.info(f"Successfully read Excel file: {file.filename}")
-            except Exception as e:
-                logger.error(f"Excel read error: {str(e)}")
-                raise ValueError(f"Could not read Excel file: {str(e)}")
+                # Try decoding with detected encoding
+                file_content = contents.decode(encoding)
+            except UnicodeDecodeError:
+                # Fallback to replace errors
+                file_content = contents.decode(encoding, errors='replace')
+            file_like = BytesIO(file_content.encode('utf-8'))
         else:
-            raise ValueError("Unsupported file format. Only CSV and Excel files are supported.")
-        
-        # Validate dataframe
-        if df.empty:
-            raise ValueError("The uploaded file is empty")
-        
-        if len(df.columns) == 0:
-            raise ValueError("No columns found in the file")
-        
-        # Generate file ID
+            file_like = BytesIO(contents)
+
+        # Read file into DataFrame
+        if file.filename.endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(file_like)
+        elif file.filename.endswith(('.csv', '.txt')):
+            df = pd.read_csv(BytesIO(file_content.encode('utf-8')))
+        else:
+            raise HTTPException(400, "Unsupported file type")
+
+        # Generate unique file ID
         file_id = str(uuid.uuid4())
-        logger.info(f"Generated file_id: {file_id}")
         
-        # Store in data_store
+        # Store data
         data_store[file_id] = {
-            "filename": file.filename,
-            "original_df": df.copy(),
+            "original_df": df,
             "current_df": df.copy(),
-            "actions": [f"Uploaded: {file.filename}"]
+            "actions": []
         }
-        
-        # Return success response
+
         return {
-            "status": "success",
             "file_id": file_id,
             "filename": file.filename,
             "columns": list(df.columns),
@@ -76,10 +55,7 @@ async def upload_file(file: UploadFile = File(...)):
             "head": df.head().to_dict(orient="records"),
             "shape": list(df.shape)
         }
-        
     except Exception as e:
-        logger.error(f"Upload failed for {file.filename}: {str(e)}", exc_info=True)
-        return {
-            "status": "error",
-            "message": f"File processing error: {str(e)}"
-        }
+        logger.exception(f"Upload failed: {str(e)}")
+        raise HTTPException(500, f"File processing error: {str(e)}")
+
