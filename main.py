@@ -2,12 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-# Import routers
-from routers.upload import router as upload_router
+# Import routers - note updated import for file_upload
+from routers.file_upload import router as upload_router  # Changed import
 from routers.overview import router as overview_router
 from routers.cleaning import router as cleaning_router
 from routers.outliers import router as outliers_router
-from routers.visualization_routers import router as visualization_router  # Plural!
+from routers.visualization_routers import router as visualization_router
 from routers.download import router as download_router
 from routers.report import router as report_router
 
@@ -24,20 +24,20 @@ app = FastAPI(
     redoc_url="/api/redoc"
 )
 
-# CORS configuration - critical for frontend-backend communication
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # Local React dev server
-        "https://my-eda-frontend.vercel.app",  # Your Vercel frontend
-        "https://my-eda-frontend-r9ws8b9y4-thasarrathis-projects.vercel.app"  # Vercel preview URL
+        "http://localhost:3000",
+        "https://my-eda-frontend.vercel.app",
+        "https://my-eda-frontend-r9ws8b9y4-thasarrathis-projects.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include all routers with proper prefixes
+# Include all routers
 app.include_router(upload_router, prefix="/api", tags=["Upload"])
 app.include_router(overview_router, prefix="/api/overview", tags=["Overview"])
 app.include_router(cleaning_router, prefix="/api/cleaning", tags=["Cleaning"])
@@ -59,4 +59,3 @@ def health_check():
 async def global_exception_handler(request, exc):
     logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
     return {"error": "Internal server error"}, 500
-
