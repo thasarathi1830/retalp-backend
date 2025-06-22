@@ -5,7 +5,7 @@ import chardet
 import uuid
 import logging
 
-# If you use a global data store (like a dict), import or define it:
+# Import data store
 try:
     from state import data_store
 except ImportError:
@@ -14,53 +14,54 @@ except ImportError:
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.post("/upload")
+@router.post("/upload")  # Critical: No trailing slash
 async def upload_file(file: UploadFile = File(...)):
-    """
-    Upload a CSV or Excel file, auto-detect encoding, store in global data_store, and return file metadata.
-    """
     try:
+        # Read file content
         contents = await file.read()
-
+        
         # Detect encoding for text files
         if file.filename.lower().endswith(('.csv', '.txt')):
-            encoding = chardet.detect(contents)['encoding'] or 'utf-8'
+            result = chardet.detect(contents)
+            encoding = result['encoding'] or 'utf-8'
             try:
-                decoded = contents.decode(encoding)
-            except Exception:
-                decoded = contents.decode('utf-8', errors='replace')
-            file_like = BytesIO(decoded.encode('utf-8'))
-            df = pd.read_csv(file_like)
-        elif file.filename.lower().endswith(('.xlsx', '.xls')):
-            df = pd.read_excel(BytesIO(contents))
+                # Try decoding with detected encoding
+                file_content = contents.decode(encoding)
+            except UnicodeDecodeError:
+                # Fallback to replace errors
+                file_content = contents.decode(encoding, errors='replace')
+            file_like = BytesIO(file_content.encode('utf-8'))
         else:
-            raise HTTPException(status_code=400, detail="Unsupported file type. Please upload a CSV or Excel file.")
+            file_like = BytesIO(contents)
+
+        # Read file into DataFrame
+        if file.filename.lower().endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(file_like)
+        elif file.filename.lower().endswith(('.csv', '.txt')):
+            df = pd.read_csv(file_like)
+        else:
+            raise HTTPException(400, "Unsupported file type. Supported: CSV, Excel")
 
         # Generate unique file ID
         file_id = str(uuid.uuid4())
-
-        # Store DataFrame and metadata in global data_store
+        
+        # Store data
         data_store[file_id] = {
             "original_df": df,
             "current_df": df.copy(),
             "actions": []
         }
 
-        # Prepare response metadata
-        response = {
+        return {
             "file_id": file_id,
             "filename": file.filename,
             "columns": list(df.columns),
             "dtypes": df.dtypes.astype(str).to_dict(),
             "null_counts": df.isnull().sum().to_dict(),
-            "head": df.head(10).to_dict(orient="records"),
+            "head": df.head().to_dict(orient="records"),
             "shape": list(df.shape)
         }
-        return response
-
-    except pd.errors.ParserError as e:
-        logger.exception("Pandas parser error")
-        raise HTTPException(status_code=400, detail=f"File parsing error: {str(e)}")
     except Exception as e:
-        logger.exception("File upload error")
-        raise HTTPException(status_code=500, detail=f"File processing error: {str(e)}")
+        logger.exception(f"Upload failed: {str(e)}")
+        raise HTTPException(500, f"File processing error: {str(e)}")
+
