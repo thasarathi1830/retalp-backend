@@ -20,17 +20,17 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # Local development
-        "https://my-eda-frontend-r9ws8b9y4-thasarrathis-projects.vercel.app",  # Your Vercel frontend
-        "https://my-eda-frontend.vercel.app"  # Your main Vercel domain
+        "http://localhost:3000",
+        "https://my-eda-frontend.vercel.app",
+        "https://my-eda-frontend-r9ws8b9y4-thasarrathis-projects.vercel.app"
     ],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Include all routers with /api prefix
-app.include_router(upload_router, prefix="/api/upload", tags=["Upload"])
+# Include routers with correct prefixes
+app.include_router(upload_router, prefix="/api", tags=["Upload"])  # Fixed prefix
 app.include_router(overview_router, prefix="/api/overview", tags=["Overview"])
 app.include_router(cleaning_router, prefix="/api/cleaning", tags=["Cleaning"])
 app.include_router(outliers_router, prefix="/api/outliers", tags=["Outliers"])
