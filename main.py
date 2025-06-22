@@ -16,19 +16,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration - Update with your actual frontend URL
+# CORS configuration - critical fix
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",          # Local development
-        "https://your-frontend.vercel.app" # Your Vercel deployment
+        "http://localhost:3000",  # Local development
+        "https://my-eda-frontend-r9ws8b9y4-thasarrathis-projects.vercel.app",  # Your Vercel frontend
+        "https://my-eda-frontend.vercel.app"  # Your main Vercel domain
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
 
-# Include all routers with consistent prefixes
+# Include all routers with /api prefix
 app.include_router(upload_router, prefix="/api/upload", tags=["Upload"])
 app.include_router(overview_router, prefix="/api/overview", tags=["Overview"])
 app.include_router(cleaning_router, prefix="/api/cleaning", tags=["Cleaning"])
