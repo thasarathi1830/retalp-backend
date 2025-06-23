@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 from state import data_store
-import pandas as pd
 import logging
 
 router = APIRouter()
@@ -14,20 +13,20 @@ async def get_overview(file_id: str):
         
         data = data_store[file_id]
         df = data["current_df"]
-        
-        # Basic statistics
+
         null_counts = df.isnull().sum().to_dict()
         dtypes = df.dtypes.astype(str).to_dict()
-        
+
         return {
             "file_id": file_id,
-            "filename": data["filename"],
+            "filename": data.get("filename", "Unknown"),  # ✅ Safe access
             "columns": list(df.columns),
             "dtypes": dtypes,
             "null_counts": null_counts,
             "head": df.head().to_dict(orient="records"),
             "shape": list(df.shape)
         }
+
     except Exception as e:
         logger.error(f"Overview error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

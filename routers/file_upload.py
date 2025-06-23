@@ -4,7 +4,7 @@ from io import BytesIO
 import chardet
 import uuid
 
-# Import data store if you have one
+# Import data store
 try:
     from state import data_store
 except ImportError:
@@ -26,6 +26,7 @@ async def upload_file(file: UploadFile = File(...)):
         else:
             file_like = BytesIO(contents)
 
+        # Read into DataFrame
         if file.filename.lower().endswith(('.xlsx', '.xls')):
             df = pd.read_excel(file_like)
         elif file.filename.lower().endswith(('.csv', '.txt')):
@@ -33,10 +34,12 @@ async def upload_file(file: UploadFile = File(...)):
         else:
             raise HTTPException(status_code=400, detail="Unsupported file type. Supported: CSV, Excel")
 
+        # Generate file ID and store
         file_id = str(uuid.uuid4())
         data_store[file_id] = {
             "original_df": df,
             "current_df": df.copy(),
+            "filename": file.filename,  # ✅ Add filename here
             "actions": []
         }
 
@@ -49,5 +52,6 @@ async def upload_file(file: UploadFile = File(...)):
             "head": df.head().to_dict(orient="records"),
             "shape": list(df.shape)
         }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File processing error: {str(e)}")
