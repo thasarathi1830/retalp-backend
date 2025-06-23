@@ -38,7 +38,7 @@ app.add_middleware(
 )
 
 # Include all routers
-app.include_router(upload_router, prefix="/api/file_upload", tags=["Upload"])
+app.include_router(upload_router, prefix="/api", tags=["Upload"])
 app.include_router(overview_router, prefix="/api/overview", tags=["Overview"])
 app.include_router(cleaning_router, prefix="/api/cleaning", tags=["Cleaning"])
 app.include_router(outliers_router, prefix="/api/outliers", tags=["Outliers"])
