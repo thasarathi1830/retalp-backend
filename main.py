@@ -11,7 +11,6 @@ from routers.visualization_routers import router as visualization_router
 from routers.download import router as download_router
 from routers.report import router as report_router
 
-# Initialize logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,6 @@ app = FastAPI(
     redoc_url="/api/redoc"
 )
 
-# CORS configuration (add all frontend URLs you use!)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -37,7 +35,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include all routers
 app.include_router(upload_router, prefix="/api", tags=["Upload"])
 app.include_router(overview_router, prefix="/api/overview", tags=["Overview"])
 app.include_router(cleaning_router, prefix="/api/cleaning", tags=["Cleaning"])
@@ -54,7 +51,6 @@ def root():
 def health_check():
     return {"status": "healthy", "version": app.version}
 
-# Error handling middleware
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
