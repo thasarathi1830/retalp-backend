@@ -24,13 +24,13 @@ app = FastAPI(
     redoc_url="/api/redoc"
 )
 
-# CORS configuration
+# CORS configuration (add all frontend URLs you use!)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "https://my-eda-frontend.vercel.app",
-        "https://my-eda-frontend-r9ws8b9y4-thasarrathis-projects.vercel.app"
+        "https://my-eda-frontend-n5spl07dl-thasarathis-projects.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
