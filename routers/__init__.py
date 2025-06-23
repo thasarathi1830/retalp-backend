@@ -1,4 +1,4 @@
-from .upload import router as upload_router
+from .file_upload import router as upload_router
 from .overview import router as overview_router
 from .cleaning import router as cleaning_router
 from .outliers import router as outliers_router
