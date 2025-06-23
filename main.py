@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 # Import routers
-from routers.file_upload import router as upload_router  # Updated to file_upload
+from routers.file_upload import router as upload_router
 from routers.overview import router as overview_router
 from routers.cleaning import router as cleaning_router
 from routers.outliers import router as outliers_router
